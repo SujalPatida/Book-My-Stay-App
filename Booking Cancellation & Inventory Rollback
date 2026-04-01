@@ -1,0 +1,230 @@
+import java.util.*;
+
+/**
+ * Reservation model
+ */
+class Reservation {
+    private String reservationId;
+    private String guestName;
+    private String roomType;
+
+    public Reservation(String reservationId, String guestName, String roomType) {
+        this.reservationId = reservationId;
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+
+    public String getReservationId() { return reservationId; }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+}
+
+/**
+ * Inventory Service
+ */
+class RoomInventory {
+    private Map<String, Integer> inventory;
+
+    public RoomInventory() {
+        inventory = new HashMap<>();
+        inventory.put("Single Room", 2);
+        inventory.put("Double Room", 1);
+        inventory.put("Suite Room", 1);
+    }
+
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    public void updateAvailability(String roomType, int count) {
+        inventory.put(roomType, count);
+    }
+
+    public void displayInventory() {
+        System.out.println("\nCurrent Inventory:");
+        for (Map.Entry<String, Integer> e : inventory.entrySet()) {
+            System.out.println(e.getKey() + " -> " + e.getValue());
+        }
+    }
+}
+
+/**
+ * Booking History (acts as confirmed bookings store)
+ */
+class BookingHistory {
+    private Map<String, Reservation> history;
+
+    public BookingHistory() {
+        history = new HashMap<>();
+    }
+
+    public void addReservation(Reservation r) {
+        history.put(r.getReservationId(), r);
+    }
+
+    public Reservation getReservation(String id) {
+        return history.get(id);
+    }
+
+    public void removeReservation(String id) {
+        history.remove(id);
+    }
+
+    public void displayHistory() {
+        System.out.println("\nActive Reservations:");
+        for (Reservation r : history.values()) {
+            System.out.println(r.getReservationId() + " | " + r.getGuestName() + " | " + r.getRoomType());
+        }
+    }
+}
+
+/**
+ * Booking Service (simplified allocation)
+ */
+class BookingService {
+    private RoomInventory inventory;
+    private BookingHistory history;
+    private Map<String, String> allocatedRooms; // reservationId -> roomId
+
+    public BookingService(RoomInventory inventory, BookingHistory history) {
+        this.inventory = inventory;
+        this.history = history;
+        this.allocatedRooms = new HashMap<>();
+    }
+
+    public void book(String guestName, String roomType) {
+
+        int available = inventory.getAvailability(roomType);
+
+        if (available <= 0) {
+            System.out.println("Booking Failed: No rooms available.");
+            return;
+        }
+
+        String reservationId = UUID.randomUUID().toString().substring(0, 6);
+        String roomId = roomType.substring(0, 2).toUpperCase() + "-" + UUID.randomUUID().toString().substring(0, 4);
+
+        Reservation reservation = new Reservation(reservationId, guestName, roomType);
+
+        history.addReservation(reservation);
+        allocatedRooms.put(reservationId, roomId);
+
+        inventory.updateAvailability(roomType, available - 1);
+
+        System.out.println("Booking Confirmed: " + reservationId + " | RoomID: " + roomId);
+    }
+
+    public String getRoomId(String reservationId) {
+        return allocatedRooms.get(reservationId);
+    }
+
+    public void removeAllocation(String reservationId) {
+        allocatedRooms.remove(reservationId);
+    }
+}
+
+/**
+ * Cancellation Service with Stack (LIFO rollback)
+ */
+class CancellationService {
+
+    private RoomInventory inventory;
+    private BookingHistory history;
+    private BookingService bookingService;
+
+    // Stack to track released room IDs (rollback structure)
+    private Stack<String> rollbackStack;
+
+    public CancellationService(RoomInventory inventory, BookingHistory history, BookingService bookingService) {
+        this.inventory = inventory;
+        this.history = history;
+        this.bookingService = bookingService;
+        this.rollbackStack = new Stack<>();
+    }
+
+    public void cancel(String reservationId) {
+
+        System.out.println("\nProcessing cancellation for: " + reservationId);
+
+        // Step 1: Validate existence
+        Reservation reservation = history.getReservation(reservationId);
+
+        if (reservation == null) {
+            System.out.println("Cancellation Failed: Reservation does not exist.");
+            return;
+        }
+
+        String roomType = reservation.getRoomType();
+        String roomId = bookingService.getRoomId(reservationId);
+
+        if (roomId == null) {
+            System.out.println("Cancellation Failed: Already cancelled or invalid.");
+            return;
+        }
+
+        // Step 2: Push to rollback stack (LIFO tracking)
+        rollbackStack.push(roomId);
+
+        // Step 3: Restore inventory
+        int current = inventory.getAvailability(roomType);
+        inventory.updateAvailability(roomType, current + 1);
+
+        // Step 4: Remove booking
+        history.removeReservation(reservationId);
+        bookingService.removeAllocation(reservationId);
+
+        System.out.println("Cancellation Successful. Room released: " + roomId);
+    }
+
+    public void displayRollbackStack() {
+        System.out.println("\nRollback Stack (Recent Releases): " + rollbackStack);
+    }
+}
+
+/**
+ * Main Application
+ */
+public class HotelBookingApp {
+
+    public static void main(String[] args) {
+
+        RoomInventory inventory = new RoomInventory();
+        BookingHistory history = new BookingHistory();
+        BookingService bookingService = new BookingService(inventory, history);
+        CancellationService cancellationService = new CancellationService(inventory, history, bookingService);
+
+        // Step 1: Book rooms
+        bookingService.book("Alice", "Single Room");
+        bookingService.book("Bob", "Double Room");
+
+        // Display state
+        history.displayHistory();
+        inventory.displayInventory();
+
+        // Get reservation IDs for demo
+        List<String> ids = new ArrayList<>(Arrays.asList(
+                history.getReservation("dummy") == null ? "" : "" // placeholder
+        ));
+
+        // Extract actual IDs dynamically
+        ids.clear();
+        for (Reservation r : new ArrayList<>(history.history.values())) {
+            ids.add(r.getReservationId());
+        }
+
+        // Step 2: Cancel first booking
+        if (!ids.isEmpty()) {
+            cancellationService.cancel(ids.get(0));
+        }
+
+        // Step 3: Attempt invalid cancellation
+        cancellationService.cancel("INVALID_ID");
+
+        // Final state
+        history.displayHistory();
+        inventory.displayInventory();
+        cancellationService.displayRollbackStack();
+
+        System.out.println("\nSystem remains consistent after cancellation.");
+    }
+}
