@@ -1,0 +1,46 @@
+/**
+ * BookingQueue manages incoming booking requests using FIFO order.
+ * Ensures fairness and preserves arrival sequence.
+ */
+import java.util.LinkedList;
+import java.util.Queue;
+
+class BookingQueue {
+
+    private Queue<Reservation> queue;
+
+    public BookingQueue() {
+        queue = new LinkedList<>();
+    }
+
+    // Add booking request (enqueue)
+    public void addRequest(Reservation reservation) {
+        queue.offer(reservation);
+        System.out.println("Request added: " 
+            + reservation.getGuestName() 
+            + " -> " + reservation.getRoomType());
+    }
+
+    // View next request (without removing)
+    public Reservation peekRequest() {
+        return queue.peek();
+    }
+
+    // Get and remove next request (dequeue)
+    public Reservation getNextRequest() {
+        return queue.poll();
+    }
+
+    // Display all queued requests
+    public void displayQueue() {
+        System.out.println("\n====== Booking Request Queue ======");
+        for (Reservation r : queue) {
+            System.out.println(r.getGuestName() + " requested " + r.getRoomType());
+        }
+    }
+
+    // Check if queue is empty
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+}
