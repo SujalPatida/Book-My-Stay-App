@@ -1,0 +1,50 @@
+/**
+ * RoomInventory manages room availability using a centralized HashMap.
+ * Acts as a single source of truth for all room counts.
+ */
+import java.util.HashMap;
+import java.util.Map;
+
+class RoomInventory {
+
+    private Map<String, Integer> inventory;
+
+    // Constructor - initialize inventory
+    public RoomInventory() {
+        inventory = new HashMap<>();
+
+        // Initial room availability
+        inventory.put("Single Room", 5);
+        inventory.put("Double Room", 3);
+        inventory.put("Suite Room", 2);
+    }
+
+    // Get availability for a specific room type
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    // Update availability (controlled modification)
+    public void updateAvailability(String roomType, int count) {
+        inventory.put(roomType, count);
+    }
+
+    // Reduce availability (e.g., booking)
+    public void bookRoom(String roomType) {
+        int current = getAvailability(roomType);
+        if (current > 0) {
+            inventory.put(roomType, current - 1);
+            System.out.println(roomType + " booked successfully.");
+        } else {
+            System.out.println(roomType + " is not available.");
+        }
+    }
+
+    // Display all inventory
+    public void displayInventory() {
+        System.out.println("\n====== Centralized Room Inventory ======");
+        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+            System.out.println(entry.getKey() + " -> Available: " + entry.getValue());
+        }
+    }
+}
