@@ -1,0 +1,80 @@
+/**
+ * BookingService processes queued requests and safely allocates rooms.
+ * Ensures no double-booking using Set and maintains inventory consistency.
+ */
+import java.util.*;
+
+class BookingService {
+
+    private RoomInventory inventory;
+    private BookingQueue bookingQueue;
+
+    // Map: Room Type -> Set of allocated room IDs
+    private Map<String, Set<String>> allocatedRooms;
+
+    public BookingService(RoomInventory inventory, BookingQueue bookingQueue) {
+        this.inventory = inventory;
+        this.bookingQueue = bookingQueue;
+        this.allocatedRooms = new HashMap<>();
+    }
+
+    // Process all booking requests (FIFO)
+    public void processBookings() {
+
+        System.out.println("\n====== Processing Booking Requests ======");
+
+        while (!bookingQueue.isEmpty()) {
+
+            Reservation request = bookingQueue.getNextRequest();
+            String roomType = request.getRoomType();
+
+            int available = inventory.getAvailability(roomType);
+
+            // Check availability
+            if (available > 0) {
+
+                // Generate unique room ID
+                String roomId = generateRoomId(roomType);
+
+                // Ensure uniqueness using Set
+                allocatedRooms.putIfAbsent(roomType, new HashSet<>());
+                Set<String> roomSet = allocatedRooms.get(roomType);
+
+                // Double-check uniqueness (defensive)
+                if (!roomSet.contains(roomId)) {
+
+                    // Atomic operation: assign + update inventory
+                    roomSet.add(roomId);
+                    inventory.updateAvailability(roomType, available - 1);
+
+                    System.out.println("Booking Confirmed:");
+                    System.out.println("Guest: " + request.getGuestName());
+                    System.out.println("Room Type: " + roomType);
+                    System.out.println("Assigned Room ID: " + roomId);
+                    System.out.println("-------------------------------");
+
+                } else {
+                    System.out.println("Error: Duplicate Room ID detected!");
+                }
+
+            } else {
+                System.out.println("Booking Failed (No Availability): "
+                        + request.getGuestName() + " -> " + roomType);
+            }
+        }
+    }
+
+    // Generate unique room ID
+    private String generateRoomId(String roomType) {
+        return roomType.substring(0, 2).toUpperCase() + "-" + UUID.randomUUID().toString().substring(0, 5);
+    }
+
+    // Display allocated rooms
+    public void displayAllocations() {
+        System.out.println("\n====== Allocated Rooms ======");
+
+        for (Map.Entry<String, Set<String>> entry : allocatedRooms.entrySet()) {
+            System.out.println(entry.getKey() + " -> " + entry.getValue());
+        }
+    }
+}
