@@ -1,0 +1,73 @@
+/**
+ * SearchService handles read-only operations for guests.
+ * It retrieves available rooms without modifying system state.
+ */
+import java.util.List;
+
+class SearchService {
+
+    private RoomInventory inventory;
+
+    // Constructor injection (Separation of Concerns)
+    public SearchService(RoomInventory inventory) {
+        this.inventory = inventory;
+    }
+
+    // Search available rooms (Read-only)
+    public void searchAvailableRooms(List<Room> rooms) {
+
+        System.out.println("\n====== Available Rooms ======\n");
+
+        for (Room room : rooms) {
+
+            int available = inventory.getAvailability(room.getType());
+
+            // Validation: show only available rooms
+            if (available > 0) {
+
+                System.out.println("Room Type: " + room.getType());
+                System.out.println("Beds: " + room.getBeds());
+                System.out.println("Price: ₹" + room.getPrice());
+                System.out.print("Features: ");
+                room.displayFeatures();
+                System.out.println("Available: " + available);
+                System.out.println("----------------------------");
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Demonstrates guest room search using read-only service.
+ */
+public class HotelBookingApp {
+
+    public static void main(String[] args) {
+
+        // Step 1: Initialize inventory (state holder)
+        RoomInventory inventory = new RoomInventory();
+
+        // Step 2: Create room domain objects
+        List<Room> rooms = new ArrayList<>();
+        rooms.add(new SingleRoom());
+        rooms.add(new DoubleRoom());
+        rooms.add(new SuiteRoom());
+
+        // Step 3: Create search service
+        SearchService searchService = new SearchService(inventory);
+
+        // Step 4: Guest searches for rooms (read-only)
+        searchService.searchAvailableRooms(rooms);
+
+        System.out.println("\nSearch completed. No data modified.");
+    }
+}
