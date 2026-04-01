@@ -1,0 +1,33 @@
+/**
+ * Abstract class representing a general Room.
+ * Defines common properties and behavior for all room types.
+ */
+abstract class Room {
+
+    private int beds;
+    private double price;
+    private String type;
+
+    // Constructor
+    public Room(String type, int beds, double price) {
+        this.type = type;
+        this.beds = beds;
+        this.price = price;
+    }
+
+    // Getters (Encapsulation)
+    public int getBeds() {
+        return beds;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    // Abstract method (can be customized later)
+    public abstract void displayFeatures();
+}
