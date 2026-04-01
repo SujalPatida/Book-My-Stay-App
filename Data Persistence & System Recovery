@@ -1,0 +1,193 @@
+import java.io.*;
+import java.util.*;
+
+/**
+ * Reservation model (Serializable for persistence)
+ */
+class Reservation implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String reservationId;
+    private String guestName;
+    private String roomType;
+
+    public Reservation(String reservationId, String guestName, String roomType) {
+        this.reservationId = reservationId;
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+
+    public String getReservationId() { return reservationId; }
+    public String getGuestName() { return guestName; }
+    public String getRoomType() { return roomType; }
+}
+
+/**
+ * Inventory (Serializable)
+ */
+class RoomInventory implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private Map<String, Integer> inventory = new HashMap<>();
+
+    public RoomInventory() {
+        inventory.put("Single Room", 2);
+        inventory.put("Double Room", 1);
+    }
+
+    public Map<String, Integer> getInventory() {
+        return inventory;
+    }
+
+    public void setInventory(Map<String, Integer> inventory) {
+        this.inventory = inventory;
+    }
+
+    public void display() {
+        System.out.println("\nInventory State:");
+        for (Map.Entry<String, Integer> e : inventory.entrySet()) {
+            System.out.println(e.getKey() + " -> " + e.getValue());
+        }
+    }
+}
+
+/**
+ * Booking History (Serializable)
+ */
+class BookingHistory implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private List<Reservation> reservations = new ArrayList<>();
+
+    public void add(Reservation r) {
+        reservations.add(r);
+    }
+
+    public List<Reservation> getAll() {
+        return reservations;
+    }
+
+    public void display() {
+        System.out.println("\nBooking History:");
+        for (Reservation r : reservations) {
+            System.out.println(r.getReservationId() + " | "
+                    + r.getGuestName() + " | " + r.getRoomType());
+        }
+    }
+}
+
+/**
+ * Wrapper class for full system state (snapshot)
+ */
+class SystemState implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    RoomInventory inventory;
+    BookingHistory history;
+
+    public SystemState(RoomInventory inventory, BookingHistory history) {
+        this.inventory = inventory;
+        this.history = history;
+    }
+}
+
+/**
+ * Persistence Service (Save + Load)
+ */
+class PersistenceService {
+
+    private static final String FILE_NAME = "hotel_state.ser";
+
+    // Save state to file
+    public static void save(SystemState state) {
+        try (ObjectOutputStream oos =
+                     new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+
+            oos.writeObject(state);
+            System.out.println("\nState saved successfully.");
+
+        } catch (IOException e) {
+            System.out.println("Error saving state: " + e.getMessage());
+        }
+    }
+
+    // Load state from file
+    public static SystemState load() {
+
+        File file = new File(FILE_NAME);
+
+        // Handle missing file
+        if (!file.exists()) {
+            System.out.println("\nNo saved state found. Starting fresh.");
+            return null;
+        }
+
+        try (ObjectInputStream ois =
+                     new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+
+            SystemState state = (SystemState) ois.readObject();
+            System.out.println("\nState restored successfully.");
+            return state;
+
+        } catch (Exception e) {
+            // Handle corrupted file safely
+            System.out.println("Error loading state. Starting with clean state.");
+            return null;
+        }
+    }
+}
+
+/**
+ * Main Application
+ */
+public class HotelBookingApp {
+
+    public static void main(String[] args) {
+
+        // Step 1: Try to restore previous state
+        SystemState restored = PersistenceService.load();
+
+        RoomInventory inventory;
+        BookingHistory history;
+
+        if (restored != null) {
+            inventory = restored.inventory;
+            history = restored.history;
+        } else {
+            // Fresh state
+            inventory = new RoomInventory();
+            history = new BookingHistory();
+        }
+
+        // Step 2: Simulate operations
+        System.out.println("\n--- Current System State ---");
+        inventory.display();
+        history.display();
+
+        // Add new booking (simulating system activity)
+        String id = UUID.randomUUID().toString().substring(0, 5);
+        Reservation r = new Reservation(id, "Alice", "Single Room");
+
+        history.add(r);
+
+        // Update inventory safely
+        int available = inventory.getInventory().get("Single Room");
+        if (available > 0) {
+            inventory.getInventory().put("Single Room", available - 1);
+            System.out.println("\nNew booking added: " + id);
+        } else {
+            System.out.println("\nNo availability for new booking.");
+        }
+
+        // Step 3: Save state before shutdown
+        SystemState state = new SystemState(inventory, history);
+        PersistenceService.save(state);
+
+        // Display updated state
+        System.out.println("\n--- Updated System State ---");
+        inventory.display();
+        history.display();
+
+        System.out.println("\nSystem can now restart with recovered state.");
+    }
+}
