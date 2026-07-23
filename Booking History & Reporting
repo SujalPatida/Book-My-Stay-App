@@ -1,8 +1,5 @@
 import java.util.*;
 
-/**
- * Represents a confirmed reservation.
- */
 class Reservation {
     private String reservationId;
     private String guestName;
