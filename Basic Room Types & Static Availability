@@ -1,7 +1,3 @@
-/**
- * Abstract class representing a general Room.
- * Defines common properties and behavior for all room types.
- */
 abstract class Room {
 
     private int beds;
