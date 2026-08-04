@@ -23,10 +23,6 @@ class Reservation {
         return roomType;
     }
 }
-
-/**
- * BookingHistory stores confirmed reservations in insertion order.
- */
 class BookingHistory {
 
     private List<Reservation> history;
