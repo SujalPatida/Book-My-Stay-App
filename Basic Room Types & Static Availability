@@ -23,7 +23,6 @@ abstract class Room {
     public String getType() {
         return type;
     }
-
     // Abstract method (can be customized later)
     public abstract void displayFeatures();
 }
