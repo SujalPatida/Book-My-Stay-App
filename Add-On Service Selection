@@ -6,7 +6,6 @@ class AddOnService {
         this.serviceName = serviceName;
         this.price = price;
     }
-
     public String getServiceName() {
         return serviceName;
     }
